@@ -1,0 +1,12 @@
+# Local configuration with personal values
+config.js
+
+# Dependencies / tooling
+node_modules/
+.netlify/
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

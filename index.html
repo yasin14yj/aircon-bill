@@ -1,0 +1,825 @@
+<title>Air-Con Meter Bill</title>
+<style>
+  :root {
+    --ground: #eef1f1;
+    --surface: #ffffff;
+    --surface-sunk: #f5f7f7;
+    --ink: #15201f;
+    --muted: #5d6d6b;
+    --line: #d9e0df;
+    --accent: #0c8f8a;
+    --accent-deep: #0a5f5c;
+    --accent-ink: #f2fbfa;
+    --warn: #b4552a;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(20, 40, 38, .06), 0 12px 32px -12px rgba(20, 40, 38, .18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1312;
+      --surface: #151e1d;
+      --surface-sunk: #101817;
+      --ink: #e7efed;
+      --muted: #93a4a1;
+      --line: #26332f;
+      --accent: #2fd2c6;
+      --accent-deep: #17403d;
+      --accent-ink: #eafffb;
+      --warn: #e8895f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 18px 40px -16px rgba(0, 0, 0, .6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1312;
+    --surface: #151e1d;
+    --surface-sunk: #101817;
+    --ink: #e7efed;
+    --muted: #93a4a1;
+    --line: #26332f;
+    --accent: #2fd2c6;
+    --accent-deep: #17403d;
+    --accent-ink: #eafffb;
+    --warn: #e8895f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 18px 40px -16px rgba(0, 0, 0, .6);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { color-scheme: light dark; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    justify-content: center;
+    padding: clamp(16px, 4vw, 56px) 16px;
+    min-height: 100vh;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  header { display: flex; flex-direction: column; gap: 6px; }
+
+  .eyebrow {
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 5vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+
+  .sub { margin: 0; color: var(--muted); font-size: .92rem; max-width: 42ch; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: clamp(18px, 5vw, 26px);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 7px; }
+
+  label {
+    font-size: .82rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  label .hint { font-weight: 400; color: var(--muted); font-size: .76rem; }
+
+  .input-wrap { position: relative; display: flex; align-items: center; }
+
+  .input-wrap .unit {
+    position: absolute;
+    right: 14px;
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .8rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    font-family: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+
+  input.meter {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+    padding-right: 52px;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+
+  input.invalid { border-color: var(--warn); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 380px) { .two-col { grid-template-columns: 1fr; } }
+
+  .divider { height: 1px; background: var(--line); margin: 2px 0; }
+
+  .rate-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--surface-sunk);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    font-size: .85rem;
+  }
+
+  .rate-row span:first-child { color: var(--muted); }
+  .rate-row span:last-child {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 600;
+  }
+
+  .hint-line {
+    margin: -6px 0 0;
+    color: var(--muted);
+    font-size: .78rem;
+  }
+
+  .message {
+    margin: 0;
+    color: var(--warn);
+    font-size: .8rem;
+    font-weight: 600;
+    display: none;
+  }
+  .message.show { display: block; }
+
+  .result {
+    background: var(--accent-deep);
+    color: var(--accent-ink);
+    border-radius: var(--radius);
+    padding: clamp(18px, 5vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result .usage {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: .9rem;
+    opacity: .82;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-ink) 18%, transparent);
+    padding-bottom: 14px;
+  }
+  .result .usage b {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: 1rem;
+    opacity: 1;
+  }
+
+  .result .amount { display: flex; flex-direction: column; gap: 2px; }
+  .result .amount .k {
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    opacity: .8;
+  }
+  .result .amount .v {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: clamp(2rem, 9vw, 2.7rem);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+  }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .btn {
+    flex: 1 1 130px;
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn.wa {
+    background: #1faa52;
+    border-color: #1faa52;
+    color: #f2fff6;
+  }
+  .btn.disabled { opacity: .45; pointer-events: none; }
+
+  footer {
+    color: var(--muted);
+    font-size: .76rem;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+
+  /* ---- Printable statement (PDF) ---- */
+  .statement { display: none; }
+
+  @media print {
+    @page { margin: 16mm; }
+    body { background: #ffffff; display: block; padding: 0; }
+    .app { display: none !important; }
+    .statement {
+      display: block !important;
+      color: #14201e;
+      font-family: "Archivo", -apple-system, sans-serif;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .st-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #0c8f8a;
+      padding-bottom: 14px;
+    }
+    .st-mark {
+      font-size: .68rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #0c8f8a;
+      font-weight: 700;
+    }
+    .st-head h2 {
+      margin: 6px 0 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+    .st-date { text-align: right; font-size: .82rem; }
+    .st-date span { display: block; color: #5d6d6b; text-transform: uppercase; letter-spacing: .1em; font-size: .66rem; }
+    .st-date strong { font-size: .95rem; }
+    .st-billed { margin: 20px 0 8px; font-size: .95rem; }
+    .st-billed span { display: block; color: #5d6d6b; text-transform: uppercase; letter-spacing: .1em; font-size: .66rem; margin-bottom: 2px; }
+    .st-billed strong { font-size: 1.1rem; }
+    .st-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    .st-table td { padding: 11px 0; border-bottom: 1px solid #d9e0df; font-size: .95rem; }
+    .st-table td:last-child {
+      text-align: right;
+      font-family: "IBM Plex Mono", monospace;
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+    .st-total {
+      margin-top: 18px;
+      background: #f0f7f6;
+      border: 1px solid #0c8f8a;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .st-total span { text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; color: #0a5f5c; font-weight: 700; }
+    .st-total strong { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; }
+    .st-foot { margin-top: 22px; font-size: .72rem; color: #5d6d6b; border-top: 1px solid #d9e0df; padding-top: 10px; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<div class="app">
+  <header>
+    <span class="eyebrow">Sub-meter billing</span>
+    <h1>Air-Con Electricity Cost</h1>
+    <p class="sub">Enter your air-conditioning sub-meter readings to work out the amount payable at RM0.60 per kWh, then save it as a PDF statement.</p>
+  </header>
+
+  <div class="card">
+    <div class="two-col">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" type="text" autocomplete="name" placeholder="Occupant name">
+      </div>
+      <div class="field">
+        <label for="date">Statement date</label>
+        <input id="date" type="date">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label for="start">
+        Opening meter reading
+        <span class="hint">start of period</span>
+      </label>
+      <div class="input-wrap">
+        <input id="start" class="meter" type="text" inputmode="numeric" autocomplete="off" placeholder="0.0" aria-describedby="entry-help">
+        <span class="unit">kWh</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="end">
+        Closing meter reading
+        <span class="hint">end of period</span>
+      </label>
+      <div class="input-wrap">
+        <input id="end" class="meter" type="text" inputmode="numeric" autocomplete="off" placeholder="0.0" aria-describedby="entry-help">
+        <span class="unit">kWh</span>
+      </div>
+    </div>
+
+    <p id="entry-help" class="hint-line">Type the digits — the decimal point stays fixed and fills in from the right.</p>
+    <p id="msg" class="message" role="alert">Closing reading must be greater than or equal to the opening reading.</p>
+
+    <div class="rate-row">
+      <span>Chargeable rate</span>
+      <span>RM0.60 / kWh</span>
+    </div>
+
+    <div class="result">
+      <div class="usage">
+        <span>Consumption</span>
+        <b id="usage">0.0 kWh</b>
+      </div>
+      <div class="amount">
+        <span class="k">Amount payable</span>
+        <span class="v" id="total">RM0.00</span>
+      </div>
+      <span class="k" id="example-note" style="opacity:.7">Example readings shown — replace with your own</span>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="pdf" class="btn primary">Save as PDF</button>
+      <a id="wa" class="btn wa" target="_blank" rel="noopener" href="#">Send via WhatsApp</a>
+    </div>
+    <div class="actions">
+      <button type="button" id="email" class="btn">Email PDF</button>
+      <button type="button" id="reset" class="btn">Reset</button>
+    </div>
+    <p class="hint-line" style="margin-top:2px">Save as PDF and Email PDF work on the deployed site. Inside a preview frame the PDF opens in a new tab and email is blocked.</p>
+  </div>
+
+  <footer>
+    Readings are locked to one decimal place and must be positive. The amount payable is rounded to the nearest sen.
+  </footer>
+</div>
+
+<div class="statement" aria-hidden="true">
+  <div class="st-head">
+    <div>
+      <div class="st-mark">&#10052; Air-Conditioning</div>
+      <h2>Electricity Usage Statement</h2>
+    </div>
+    <div class="st-date">
+      <span>Statement date</span>
+      <strong id="st-date">&mdash;</strong>
+    </div>
+  </div>
+  <div class="st-billed">
+    <span>Billed to</span>
+    <strong id="st-name">&mdash;</strong>
+  </div>
+  <table class="st-table">
+    <tbody>
+      <tr><td>Opening meter reading</td><td id="st-open">&mdash;</td></tr>
+      <tr><td>Closing meter reading</td><td id="st-close">&mdash;</td></tr>
+      <tr><td>Consumption</td><td id="st-use">&mdash;</td></tr>
+      <tr><td>Chargeable rate</td><td>RM0.60 / kWh</td></tr>
+    </tbody>
+  </table>
+  <div class="st-total">
+    <span>Amount payable</span>
+    <strong id="st-total">RM0.00</strong>
+  </div>
+  <p class="st-foot" id="st-foot">Generated with the Air-Con Meter Bill calculator.</p>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  (function () {
+    var CFG = window.AIRCON_CONFIG || {};
+
+    var RATE = 0.60;
+    // WhatsApp number (digits only, international format) from config.js.
+    // Empty -> the "Send via WhatsApp" button is hidden.
+    var WA_NUMBER = String(CFG.whatsappNumber || "").replace(/\D/g, "");
+    // "Email PDF" posts to a Netlify Function (netlify/functions/send-statement.js)
+    // which sends the statement + PDF attachment through Resend.
+    var EMAIL_ENDPOINT = "/.netlify/functions/send-statement";
+
+    var startEl = document.getElementById("start");
+    var endEl = document.getElementById("end");
+    var nameEl = document.getElementById("name");
+    var dateEl = document.getElementById("date");
+    var msgEl = document.getElementById("msg");
+    var usageEl = document.getElementById("usage");
+    var totalEl = document.getElementById("total");
+    var noteEl = document.getElementById("example-note");
+    var pdfBtn = document.getElementById("pdf");
+    var waBtn = document.getElementById("wa");
+    var emailBtn = document.getElementById("email");
+
+    var st = {
+      date: document.getElementById("st-date"),
+      name: document.getElementById("st-name"),
+      open: document.getElementById("st-open"),
+      close: document.getElementById("st-close"),
+      use: document.getElementById("st-use"),
+      total: document.getElementById("st-total"),
+      foot: document.getElementById("st-foot")
+    };
+
+    var STORE = "aircon-bill-v2";
+    var MAX_DIGITS = 9;
+    var usingExample = false;
+
+    // Digits-only entry: every keystroke is a digit that pushes in from the
+    // right, so the single decimal place is always locked in.
+    function readValue(el) {
+      var d = (el.value || "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+      if (d.length > MAX_DIGITS) d = d.slice(0, MAX_DIGITS);
+      if (d === "") return null;
+      return parseInt(d, 10) / 10;
+    }
+
+    function render(el) {
+      var v = readValue(el);
+      el.value = v === null ? "" : v.toFixed(1);
+    }
+
+    function money(n) {
+      return "RM" + n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      var d = new Date(iso + "T00:00:00");
+      if (isNaN(d)) return "—";
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function state() {
+      var s = readValue(startEl);
+      var e = readValue(endEl);
+      var valid = s !== null && e !== null && s > 0 && e > 0 && e >= s;
+      var usage = valid ? Math.round((e - s) * 10) / 10 : 0;
+      var cost = Math.round(usage * RATE * 100) / 100;
+      return { s: s, e: e, valid: valid, usage: usage, cost: cost };
+    }
+
+    function compute() {
+      var s = readValue(startEl);
+      var e = readValue(endEl);
+
+      var nonPositive = (s !== null && s <= 0) || (e !== null && e <= 0);
+      var order = s !== null && e !== null && s > 0 && e > 0 && e < s;
+
+      if (nonPositive) {
+        msgEl.textContent = "Meter readings must be a positive value greater than 0.";
+      } else if (order) {
+        msgEl.textContent = "Closing reading must be greater than or equal to the opening reading.";
+      }
+      msgEl.classList.toggle("show", nonPositive || order);
+      startEl.classList.toggle("invalid", (s !== null && s <= 0) || order);
+      endEl.classList.toggle("invalid", (e !== null && e <= 0) || order);
+
+      var st0 = state();
+      usageEl.textContent = st0.usage.toFixed(1) + " kWh";
+      totalEl.textContent = money(st0.cost);
+
+      pdfBtn.classList.toggle("disabled", !st0.valid);
+      emailBtn.classList.toggle("disabled", !st0.valid);
+      waBtn.classList.toggle("disabled", !st0.valid);
+      waBtn.href = st0.valid ? waLink(st0) : "#";
+
+      updateStatement(st0);
+      save();
+    }
+
+    function summaryText(st0) {
+      return [
+        "*Air-Conditioning Electricity Statement*",
+        "Billed to: " + (nameEl.value.trim() || "—"),
+        "Statement date: " + fmtDate(dateEl.value),
+        "",
+        "Opening reading: " + st0.s.toFixed(1) + " kWh",
+        "Closing reading: " + st0.e.toFixed(1) + " kWh",
+        "Consumption: " + st0.usage.toFixed(1) + " kWh",
+        "Rate: RM0.60 / kWh",
+        "",
+        "*Amount payable: " + money(st0.cost) + "*"
+      ].join("\n");
+    }
+
+    function waLink(st0) {
+      return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(summaryText(st0));
+    }
+
+    function updateStatement(st0) {
+      st.date.textContent = fmtDate(dateEl.value);
+      st.name.textContent = nameEl.value.trim() || "—";
+      st.open.textContent = st0.valid ? st0.s.toFixed(1) + " kWh" : "—";
+      st.close.textContent = st0.valid ? st0.e.toFixed(1) + " kWh" : "—";
+      st.use.textContent = st0.valid ? st0.usage.toFixed(1) + " kWh" : "—";
+      st.total.textContent = money(st0.cost);
+      st.foot.textContent = "Generated " + new Date().toLocaleString("en-GB", {
+        day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+      }) + " · Rate chargeable per tenancy agreement.";
+    }
+
+    function save() {
+      if (usingExample) return;
+      try {
+        localStorage.setItem(STORE, JSON.stringify({
+          s: startEl.value, e: endEl.value, n: nameEl.value, d: dateEl.value
+        }));
+      } catch (err) {}
+    }
+
+    function load() {
+      var stored = null;
+      try { stored = JSON.parse(localStorage.getItem(STORE) || "null"); } catch (err) {}
+      var today = new Date().toISOString().slice(0, 10);
+      if (stored && (stored.s || stored.e || stored.n)) {
+        startEl.value = stored.s || "";
+        endEl.value = stored.e || "";
+        nameEl.value = stored.n || "";
+        dateEl.value = stored.d || today;
+      } else {
+        startEl.value = "1245.0";
+        endEl.value = "1368.5";
+        nameEl.value = "";
+        dateEl.value = today;
+        usingExample = true;
+      }
+      render(startEl);
+      render(endEl);
+    }
+
+    function clearExample() {
+      if (usingExample) { usingExample = false; noteEl.hidden = true; }
+    }
+
+    [startEl, endEl].forEach(function (el) {
+      el.addEventListener("beforeinput", function (ev) {
+        if (ev.inputType === "insertText" && ev.data && /\D/.test(ev.data)) {
+          ev.preventDefault();
+        }
+      });
+      el.addEventListener("input", function () {
+        clearExample();
+        render(el);
+        compute();
+      });
+    });
+
+    [nameEl, dateEl].forEach(function (el) {
+      el.addEventListener("input", function () { clearExample(); compute(); });
+    });
+
+    pdfBtn.addEventListener("click", buildPdf);
+    emailBtn.addEventListener("click", emailPdf);
+
+    function pdfName() {
+      return "aircon-statement-" + (dateEl.value || "statement") + ".pdf";
+    }
+
+    function makeDoc(st0) {
+      var ns = window.jspdf;
+      if (!ns || !ns.jsPDF) return null;
+
+      var doc = new ns.jsPDF({ unit: "mm", format: "a4" });
+      var L = 20, Rt = 190;
+
+      doc.setFillColor(12, 143, 138);
+      doc.rect(0, 0, 210, 4, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(12, 143, 138);
+      doc.setFontSize(9);
+      doc.text("AIR-CONDITIONING   ELECTRICITY STATEMENT", L, 24);
+
+      doc.setTextColor(20, 32, 30);
+      doc.setFontSize(22);
+      doc.text("Electricity Usage Statement", L, 34);
+
+      doc.setDrawColor(12, 143, 138);
+      doc.setLineWidth(0.8);
+      doc.line(L, 39, Rt, 39);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(93, 109, 107);
+      doc.text("STATEMENT DATE", L, 50);
+      doc.text("BILLED TO", L, 64);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      doc.setTextColor(20, 32, 30);
+      doc.text(fmtDate(dateEl.value), L, 56);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(nameEl.value.trim() || "-", L, 71);
+
+      var rows = [
+        ["Opening meter reading", st0.s.toFixed(1) + " kWh"],
+        ["Closing meter reading", st0.e.toFixed(1) + " kWh"],
+        ["Consumption", st0.usage.toFixed(1) + " kWh"],
+        ["Chargeable rate", "RM0.60 / kWh"]
+      ];
+      var y = 88;
+      doc.setFontSize(11);
+      doc.setDrawColor(217, 224, 223);
+      doc.setLineWidth(0.2);
+      rows.forEach(function (r) {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(20, 32, 30);
+        doc.text(r[0], L, y);
+        doc.setFont("helvetica", "bold");
+        doc.text(r[1], Rt, y, { align: "right" });
+        doc.line(L, y + 3.5, Rt, y + 3.5);
+        y += 11;
+      });
+
+      y += 4;
+      doc.setFillColor(240, 247, 246);
+      doc.setDrawColor(12, 143, 138);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(L, y, Rt - L, 18, 2, 2, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(10, 95, 92);
+      doc.text("AMOUNT PAYABLE", L + 6, y + 11);
+      doc.setFontSize(18);
+      doc.setTextColor(20, 32, 30);
+      doc.text(money(st0.cost), Rt - 6, y + 12, { align: "right" });
+
+      y += 30;
+      doc.setDrawColor(217, 224, 223);
+      doc.setLineWidth(0.2);
+      doc.line(L, y, Rt, y);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(93, 109, 107);
+      doc.text(
+        "Generated " + new Date().toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + "   -   Rate chargeable per tenancy agreement.",
+        L, y + 6
+      );
+
+      return doc;
+    }
+
+    function buildPdf() {
+      var st0 = state();
+      if (!st0.valid) { flash(pdfBtn, "Enter valid readings first", "Save as PDF"); return; }
+
+      var doc = makeDoc(st0);
+      if (!doc) { window.print(); return; }
+
+      var fname = pdfName();
+      var framed = false;
+      try { framed = window.self !== window.top; } catch (e) { framed = true; }
+
+      if (framed) {
+        var opened = null;
+        try { opened = window.open(doc.output("bloburl"), "_blank"); } catch (e) {}
+        if (!opened) {
+          try { doc.save(fname); } catch (e) { window.print(); }
+        }
+      } else {
+        doc.save(fname);
+      }
+      flash(pdfBtn, "PDF ready", "Save as PDF");
+    }
+
+    function emailPdf() {
+      var st0 = state();
+      if (!st0.valid) { flash(emailBtn, "Enter valid readings first", "Email PDF"); return; }
+
+      var doc = makeDoc(st0);
+      if (!doc) { flash(emailBtn, "PDF engine not ready", "Email PDF"); return; }
+
+      var b64 = doc.output("datauristring").split("base64,").pop();
+
+      var payload = {
+        name: nameEl.value.trim() || "Occupant",
+        statementDate: fmtDate(dateEl.value),
+        opening: st0.s.toFixed(1) + " kWh",
+        closing: st0.e.toFixed(1) + " kWh",
+        consumption: st0.usage.toFixed(1) + " kWh",
+        rate: "RM0.60 / kWh",
+        amount: money(st0.cost),
+        filename: pdfName(),
+        pdfBase64: b64
+      };
+
+      emailBtn.classList.add("disabled");
+      emailBtn.textContent = "Sending...";
+
+      fetch(EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (j) {
+            return { ok: r.ok, body: j };
+          });
+        })
+        .then(function (res) {
+          emailBtn.classList.remove("disabled");
+          flash(emailBtn, (res.ok && res.body.success) ? "Emailed" : "Failed - try again", "Email PDF");
+        })
+        .catch(function () {
+          emailBtn.classList.remove("disabled");
+          flash(emailBtn, "Failed - check connection", "Email PDF");
+        });
+    }
+
+    if (!WA_NUMBER) {
+      waBtn.hidden = true;
+    }
+
+    waBtn.addEventListener("click", function (ev) {
+      if (!state().valid) { ev.preventDefault(); flash(waBtn, "Enter valid readings first", "Send via WhatsApp"); }
+    });
+
+    document.getElementById("reset").addEventListener("click", function () {
+      startEl.value = ""; endEl.value = ""; nameEl.value = "";
+      dateEl.value = new Date().toISOString().slice(0, 10);
+      compute();
+      nameEl.focus();
+    });
+
+    function flash(btn, tmp, orig) {
+      btn.textContent = tmp;
+      setTimeout(function () { btn.textContent = orig; }, 1600);
+    }
+
+    window.addEventListener("beforeprint", function () { updateStatement(state()); });
+
+    load();
+    compute();
+  })();
+</script>
