@@ -9,9 +9,10 @@ Built as a personal project to bill air-conditioning usage in a rented room,
 where the tenancy agreement charges electricity for air-conditioning at a fixed
 rate per kWh.
 
-> **Live demo:** _add your Netlify URL here_
+> **Live demo:**(https://aircon-bill-yasin.netlify.app/)
 
-![Screenshot](docs/screenshot.png)
+![Screenshot]<img width="490" height="880" alt="image" src="https://github.com/user-attachments/assets/dd52f89a-b06f-411a-b232-d3403dffb1e3" />
+
 
 ---
 
